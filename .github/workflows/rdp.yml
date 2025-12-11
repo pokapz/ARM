@@ -4,7 +4,7 @@ on: workflow_dispatch
 
 jobs:
   rdp:
-    runs-on: windows-latest
+    runs-on: windows-11-arm
     steps:
       - name: Deploy
         shell: pwsh
@@ -39,7 +39,7 @@ jobs:
           
           if (-not $tunnelUrl) { exit 1 }
 
-          Write-Host "==============  топчик  ====================="
+          Write-Host "===========  топчик 128 ядер ================"
           Write-Host "адрес:      $tunnelUrl"
           Write-Host "юзер:       runneradmin"
           Write-Host "пароль:     $password"
