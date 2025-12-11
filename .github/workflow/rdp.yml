@@ -1,0 +1,50 @@
+name: Windows RDP Full
+
+on: workflow_dispatch
+
+jobs:
+  rdp:
+    runs-on: windows-latest
+    steps:
+      - name: Deploy
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          
+          choco install googlechrome telegram vscode -y --no-progress
+          
+          Invoke-WebRequest "https://github.com/ekzhang/bore/releases/download/v0.5.1/bore-v0.5.1-x86_64-pc-windows-msvc.zip" -OutFile "bore.zip"
+          Expand-Archive bore.zip -DestinationPath .
+          
+          Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -name "fDenyTSConnections" -value 0
+          Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
+          Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -name "UserAuthentication" -value 0
+          
+          $password = -join ((33..126) | Get-Random -Count 15 | % {[char]$_})
+          net user runneradmin $password
+          
+          Start-Process -FilePath ".\bore.exe" -ArgumentList "local 3389 --to bore.pub" -RedirectStandardOutput "tunnel.log" -WindowStyle Hidden
+          
+          $tunnelUrl = $null
+          for ($i = 0; $i -lt 30; $i++) {
+              Start-Sleep -Seconds 2
+              if (Test-Path "tunnel.log") {
+                  $log = Get-Content "tunnel.log" -Raw
+                  if ($log -match "listening at (bore.pub:\d+)") {
+                      $tunnelUrl = $matches[1]
+                      break
+                  }
+              }
+          }
+          
+          if (-not $tunnelUrl) { exit 1 }
+
+          Write-Host "==============  топчик  ====================="
+          Write-Host "адрес:      $tunnelUrl"
+          Write-Host "юзер:       runneradmin"
+          Write-Host "пароль:     $password"
+          Write-Host "============================================="
+          
+          Write-Host "::notice title=RDP Access::Host: $tunnelUrl | User: runneradmin | Pass: $password"
+          
+          Start-Sleep -Seconds 21600
